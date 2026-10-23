@@ -1,6 +1,6 @@
 # 番茄小说下载器 · 多租户 Web 平台
 
-把上游单机版下载器升级成「一台服务器服务多用户」的网站系统。
+「一台服务器服务多用户」的网站系统。
 基于 **FastAPI + SQLite + nginx**，为每个注册用户分配独立子域名、独立端口、独立实例。
 
 ---
@@ -334,5 +334,3 @@ systemctl restart tomato-gateway
 | 仓库 | 说明 |
 |------|------|
 | [zhongbai2333/Tomato-Novel-Downloader](https://github.com/zhongbai2333/Tomato-Novel-Downloader) | **上游本体**：解析与下载实现 |
-| [yujunc39-arch/Tomato-Novel-Downloader](https://github.com/yujunc39-arch/Tomato-Novel-Downloader) | 上游 fork（纯安卓客户端开发） |
-| yujunc39-arch/Tomato-Web | 本仓库：多租户 Web 外壳 |
