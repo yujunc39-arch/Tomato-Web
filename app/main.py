@@ -206,7 +206,7 @@ def build_mail(to_addr: str, subject: str, body: str, html: str | None = None):
     # 加个中文发件人显示名，收件箱里更可信（纯地址会自动补上）
     from_addr = SMTP_FROM
     if "<" not in from_addr:
-        from_addr = "番茄小说下载器 <{}>".format(from_addr)
+        from_addr = "解析番茄 <{}>".format(from_addr)
     msg["From"] = from_addr
     msg["To"] = to_addr
     # Date 与 Message-ID 是正规发送方的基本特征，缺失会被部分反垃圾引擎扣分
@@ -231,11 +231,11 @@ def code_mail_html(code: str, ttl_min: int) -> str:
 <tr><td align="center">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;background:#ffffff;border-radius:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;">
     <tr><td style="background:#e8590c;padding:22px 26px;border-radius:14px 14px 0 0;">
-      <span style="font-size:19px;font-weight:700;color:#ffffff;">番茄小说下载器</span>
+      <span style="font-size:19px;font-weight:700;color:#ffffff;">解析番茄</span>
     </td></tr>
     <tr><td style="padding:28px 26px 6px;">
       <p style="margin:0 0 14px;font-size:15px;color:#3d2b1f;line-height:1.7;">您好，</p>
-      <p style="margin:0 0 20px;font-size:15px;color:#3d2b1f;line-height:1.7;">您正在注册「番茄小说下载器」，本次验证码为：</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#3d2b1f;line-height:1.7;">您正在注册「解析番茄」，本次验证码为：</p>
       <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 22px;">
         <tr><td style="background:#fff4e6;border:1px dashed #f0c9a8;border-radius:12px;padding:16px 28px;">
           <span style="font-size:30px;font-weight:700;letter-spacing:6px;color:#e8590c;font-family:Menlo,Consolas,monospace;">{code}</span>
@@ -247,7 +247,7 @@ def code_mail_html(code: str, ttl_min: int) -> str:
     <tr><td style="padding:0 26px 26px;">
       <div style="border-top:1px solid #f0ece8;padding-top:16px;font-size:12px;color:#a8927e;line-height:1.8;">
         此邮件由系统自动发送，请勿直接回复。<br>
-        番茄小说下载器 · 在线搜索 / 下载 / 阅读
+        解析番茄 · 在线搜索 / 下载 / 阅读
       </div>
     </td></tr>
   </table>
@@ -592,13 +592,13 @@ async def register_send_code(data: dict, request: Request):
     ttl_min = db.CODE_TTL // 60
     body = (
         "您好，\n\n"
-        "您正在注册「番茄小说下载器」。本次验证码为：\n\n"
+        "您正在注册「解析番茄」。本次验证码为：\n\n"
         "        {code}\n\n"
         "验证码 {ttl} 分钟内有效。如非本人操作，请忽略本邮件。\n\n"
-        "—— 番茄小说下载器"
+        "—— 解析番茄"
     ).format(code=code, ttl=ttl_min)
     try:
-        send_mail(email, "【番茄小说下载器】注册验证码", body,
+        send_mail(email, "【解析番茄】注册验证码", body,
                   html=code_mail_html(code, ttl_min))
     except Exception as e:
         emsg = str(e).lower()
@@ -1360,7 +1360,7 @@ def _write_default_config(data_dir, user):
     else:
         uu = db.get_user_by_id(user) or {}
         sub = uu.get("subdomain", f"u{user}")
-    cfg = f"""# 番茄小说下载器 - {sub} 配置 (自动生成)
+    cfg = f"""# 解析番茄 - {sub} 配置 (自动生成)
 save_path: "{os.path.join(data_dir, 'books')}"
 # 保存小说格式, 可选: [txt, epub, pdf]
 novel_format: txt
