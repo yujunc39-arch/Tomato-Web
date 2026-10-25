@@ -162,6 +162,12 @@ a{color:inherit}
 .qrbox img{width:100%;max-width:300px;border-radius:18px;display:block;margin:0 auto 12px;cursor:zoom-in;
   background:#fff;padding:8px;box-shadow:0 10px 26px -14px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.8)}
 .qrbox .qrnote{font-size:12.5px;color:var(--ink2);line-height:1.75}
+.ct-tabs{margin:0 0 16px}
+#ctTabAfd.active ~ .tabInd{transform:translateX(100%)}
+#donateNotice .box{background:rgba(10,8,16,.42);
+  -webkit-backdrop-filter:blur(24px) saturate(1.05);backdrop-filter:blur(24px) saturate(1.05)}
+.dn-text{font-size:13.5px;line-height:1.85;color:rgba(255,255,255,.88)}
+.dn-text b{color:#fff}
 
 /* ================= 弹窗 ================= */
 .modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;
@@ -289,7 +295,7 @@ a{color:inherit}
       </div>
 
       <div class="contact-line">
-        <button class="link" onclick="openContact();return false">💬 联系站长（微信）</button>
+        <button class="link" onclick="openContact();return false">💬 联系网站所有者</button>
         <a class="link" href="https://qm.qq.com/q/ckIIycQapa" target="_blank" rel="noopener" title="加入 QQ 群">👥 加入 QQ 群</a>
       </div>
     </div>
@@ -312,7 +318,7 @@ a{color:inherit}
     <div class="msg" id="dashMsg"></div>
     <div class="dashFoot">
       <button class="link" onclick="openPwd();return false">修改密码</button>
-      <button class="link" onclick="openContact();return false">联系站长</button>
+      <button class="link" onclick="openContact();return false">联系网站所有者</button>
       <a class="link" href="https://qm.qq.com/q/ckIIycQapa" target="_blank" rel="noopener" title="加入 QQ 群">加入 QQ 群</a>
       <button class="link" onclick="logout()">退出登录</button>
     </div>
@@ -348,18 +354,49 @@ a{color:inherit}
   </div>
 </div>
 
-<!-- 联系方式弹窗（微信二维码） -->
+<!-- 联系方式弹窗（微信 / 爱发电） -->
 <div class="modal" id="contactModal" onclick="if(event.target===this)closeContact()">
-  <div class="box" style="max-width:360px;max-height:88vh;overflow-y:auto">
-    <h3>💬 联系站长
+  <div class="box" style="max-width:380px;max-height:88vh;overflow-y:auto">
+    <h3><span>联系网站所有者</span>
       <button class="close" onclick="closeContact()" aria-label="关闭">✕</button>
     </h3>
-    <div class="qrbox">
-      <img src="/static/wechat-qr.png" alt="微信二维码"
-           onclick="window.open('/static/wechat-qr.png','_blank')"
-           title="点击查看大图">
-      <div class="qrnote">注册遇到问题 · 想申请扩容 · 有其他建议<br>都可以直接找我</div>
+    <div class="tabs ct-tabs">
+      <button id="ctTabWx" class="active" onclick="showContactTab('wx')">💬 微信</button>
+      <button id="ctTabAfd" onclick="showContactTab('afd')">☕ 爱发电</button>
+      <span class="tabInd"></span>
     </div>
+
+    <div id="ctWx">
+      <div class="qrbox">
+        <img src="/static/wechat-qr.png" alt="微信二维码"
+             onclick="window.open('/static/wechat-qr.png','_blank')"
+             title="点击查看大图">
+        <div class="qrnote">注册遇到问题 · 想申请扩容 · 有其他建议<br>都可以直接找我</div>
+      </div>
+    </div>
+
+    <div id="ctAfd" class="hidden">
+      <div class="qrbox">
+        <img src="/static/aifadian.jpg" alt="爱发电赞赏码"
+             onclick="window.open('/static/aifadian.jpg','_blank')"
+             title="点击查看大图">
+        <div class="qrnote">如果这个站点帮你省了时间，可以请我喝杯咖啡 ☕<br>费用全部用于服务器与带宽升级</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 首次进入：支持说明（点确认后才展示完整赞赏码） -->
+<div class="modal" id="donateNotice" onclick="if(event.target===this)closeDonateNotice()">
+  <div class="box" style="max-width:372px">
+    <h3><span>关于本站</span>
+      <button class="close" onclick="closeDonateNotice()" aria-label="关闭">✕</button>
+    </h3>
+    <p class="dn-text">本站由个人独立维护，服务器与带宽都是自费。<br><br>
+      如果你愿意支持一杯咖啡，请点下方「确认」查看赞赏码 ——
+      <b>所有费用都用于升级服务器、提升访问与下载体验</b>，不会用于其他用途。</p>
+    <button class="btn" onclick="confirmDonate()" style="margin-top:16px">确 认</button>
+    <button class="btn ghost" onclick="closeDonateNotice()" style="margin-top:10px">以后再说</button>
   </div>
 </div>
 
@@ -561,8 +598,34 @@ function downloadApp(){
   if(!confirm('此软件仅限安卓(Android)设备使用。\n是否继续下载？')) return;
   window.location.href='/api/download/app';
 }
-function openContact(){document.getElementById('contactModal').classList.add('show');if(window.__lgRefresh)window.__lgRefresh();}
+function openContact(){showContactTab('wx');document.getElementById('contactModal').classList.add('show');if(window.__lgRefresh)window.__lgRefresh();}
 function closeContact(){document.getElementById('contactModal').classList.remove('show');}
+function showContactTab(t){
+  document.getElementById('ctTabWx').classList.toggle('active', t==='wx');
+  document.getElementById('ctTabAfd').classList.toggle('active', t==='afd');
+  document.getElementById('ctWx').classList.toggle('hidden', t!=='wx');
+  document.getElementById('ctAfd').classList.toggle('hidden', t!=='afd');
+}
+function closeDonateNotice(){
+  document.getElementById('donateNotice').classList.remove('show');
+  try{ localStorage.setItem('__donate_notice_v1','1'); }catch(e){}
+}
+function confirmDonate(){
+  closeDonateNotice();
+  showContactTab('afd');
+  document.getElementById('contactModal').classList.add('show');
+  if(window.__lgRefresh) window.__lgRefresh();
+}
+(function initDonateNotice(){
+  var seen=null;
+  try{ seen=localStorage.getItem('__donate_notice_v1'); }catch(e){}
+  if(seen) return;
+  setTimeout(function(){
+    if(document.getElementById('__announce_ov')) return;   // 公告优先，别叠两层
+    var n=document.getElementById('donateNotice');
+    if(n){ n.classList.add('show'); if(window.__lgRefresh) window.__lgRefresh(); }
+  }, 1500);
+})();
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeContact();});
 function openPwd(){document.getElementById('pwdModal').classList.add('show');document.getElementById('pwdMsg').textContent='';if(window.__lgRefresh)window.__lgRefresh();}
 function closePwd(){document.getElementById('pwdModal').classList.remove('show');}
