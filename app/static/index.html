@@ -42,10 +42,17 @@ a{color:inherit}
 .wrap{position:relative;max-width:452px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 20px
   calc(18px + env(safe-area-inset-bottom));min-height:100vh;display:flex;flex-direction:column;justify-content:center}
 .brand{text-align:center;padding:16px 0 20px;animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
-.brandIcon{width:76px;height:76px;margin:0 auto 14px;border-radius:26px;display:grid;place-items:center;font-size:38px;
-  background:rgba(255,255,255,.20);
-  box-shadow:0 18px 36px -16px rgba(0,0,0,.7),inset 0 -12px 20px -14px rgba(0,0,0,.35);
+.brandIcon{position:relative;width:120px;height:120px;margin:0 auto 8px;background:none;box-shadow:none;
   animation:pop 1s cubic-bezier(.2,.8,.2,1) both}
+.brandIcon .markGlass{position:absolute;left:24px;top:34px;width:72px;height:72px;border-radius:50%;
+  background:rgba(255,255,255,.08)}
+.brandIcon .mark{position:relative;width:120px;height:120px;color:rgba(255,255,255,.95);
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.45))}
+.brandIcon .markGlass{position:absolute;left:50%;top:27px;width:86px;height:78px;margin-left:-43px;border-radius:50%;
+  background:rgba(255,255,255,.07)}
+.brandIcon .mark{position:relative;width:120px;height:112px;color:rgba(255,255,255,.94);
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.45))}
+.brandIcon .mark path,.brandIcon .mark circle{vector-effect:non-scaling-stroke}
 .brandIcon span{filter:drop-shadow(0 6px 10px rgba(90,86,105,.32))}
 .brand h1{font-size:25px;font-weight:700;letter-spacing:.2px;color:#ffffff;margin-bottom:2px}
 .brand p{margin-top:7px;font-size:13px;color:var(--ink2);letter-spacing:.3px}
@@ -194,7 +201,15 @@ a{color:inherit}
 </div>
 <main class="wrap">
   <header class="brand">
-    <div class="brandIcon"><span>🍅</span></div>
+    <div class="brandIcon">
+    <span class="markGlass" aria-hidden="true"></span>
+    <svg class="mark" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="60" cy="70" r="36"/>
+      <path d="M60.0 19.0 L64.5 29.9 L76.2 30.7 L67.2 38.3 L70.0 49.8 L60.0 43.6 L50.0 49.8 L52.8 38.3 L43.8 30.7 L55.5 29.9Z"/>
+      <path d="M60 19v-8"/>
+    </svg>
+  </div>
     <h1>番茄小说下载器</h1>
   </header>
 
@@ -362,8 +377,8 @@ function initLiquidGlass(){
     document.querySelectorAll(sel).forEach(function(el){ LiquidGlass.attach(el,optsFor(el)); });
   });
   // 番茄图标：小尺寸 + 磨砂，边缘一圈压缩才看得出来
-  document.querySelectorAll('.brandIcon').forEach(function(el){
-    LiquidGlass.attach(el,{band:0.42,amount:0.62,radius:0.34,blur:10,saturate:1.25,contrast:1.04,brightness:0.98});
+  document.querySelectorAll('.brandIcon .markGlass').forEach(function(el){
+    LiquidGlass.attach(el,{band:0.34,amount:0.55,radius:0.5,blur:6,saturate:1.2,contrast:1.02,brightness:1.0});
   });
 }
 initLiquidGlass();
