@@ -163,11 +163,16 @@ a{color:inherit}
   background:#fff;padding:8px;box-shadow:0 10px 26px -14px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.8)}
 .qrbox .qrnote{font-size:12.5px;color:var(--ink2);line-height:1.75}
 .ct-tabs{margin:0 0 16px}
+.afd-wrap{position:relative;border-radius:18px;overflow:hidden}
+.afd-mask{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  padding:20px 18px;text-align:center;border-radius:18px;
+  background:rgba(10,8,16,.46);
+  -webkit-backdrop-filter:blur(18px) saturate(1.05);backdrop-filter:blur(18px) saturate(1.05)}
+.afd-mask p{font-size:12.5px;line-height:1.75;color:rgba(255,255,255,.9)}
+.afd-mask .afd-em{font-weight:600;color:#fff;font-size:13px}
+.afd-mask .btn{width:100%;max-width:190px}
 #ctTabAfd.active ~ .tabInd{transform:translateX(100%)}
-#donateNotice .box{background:rgba(10,8,16,.42);
-  -webkit-backdrop-filter:blur(24px) saturate(1.05);backdrop-filter:blur(24px) saturate(1.05)}
-.dn-text{font-size:13.5px;line-height:1.85;color:rgba(255,255,255,.88)}
-.dn-text b{color:#fff}
+
 
 /* ================= 弹窗 ================= */
 .modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;
@@ -376,27 +381,20 @@ a{color:inherit}
     </div>
 
     <div id="ctAfd" class="hidden">
-      <div class="qrbox">
-        <img src="/static/aifadian.jpg" alt="爱发电赞赏码"
-             onclick="window.open('/static/aifadian.jpg','_blank')"
-             title="点击查看大图">
-        <div class="qrnote">如果这个站点帮你省了时间，可以请我喝杯咖啡 ☕<br>费用全部用于服务器与带宽升级</div>
+      <div class="afd-wrap">
+        <div class="qrbox">
+          <img src="/static/aifadian.jpg" alt="爱发电赞赏码"
+               onclick="window.open('/static/aifadian.jpg','_blank')"
+               title="点击查看大图">
+          <div class="qrnote">如果这个站点帮你省了时间，可以请我喝杯咖啡 ☕<br>费用全部用于服务器与带宽升级</div>
+        </div>
+        <div class="afd-mask" id="afdMask">
+          <p>本站由个人独立维护，服务器与带宽都是自费。<br>如果你愿意支持，点「确认」查看赞赏码：</p>
+          <p class="afd-em">所有费用都用于升级服务器、<br>提升访问与下载体验</p>
+          <button class="btn" onclick="revealDonate()" style="height:44px;font-size:15px">确 认</button>
+        </div>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- 首次进入：支持说明（点确认后才展示完整赞赏码） -->
-<div class="modal" id="donateNotice" onclick="if(event.target===this)closeDonateNotice()">
-  <div class="box" style="max-width:372px">
-    <h3><span>关于本站</span>
-      <button class="close" onclick="closeDonateNotice()" aria-label="关闭">✕</button>
-    </h3>
-    <p class="dn-text">本站由个人独立维护，服务器与带宽都是自费。<br><br>
-      如果你愿意支持一杯咖啡，请点下方「确认」查看赞赏码 ——
-      <b>所有费用都用于升级服务器、提升访问与下载体验</b>，不会用于其他用途。</p>
-    <button class="btn" onclick="confirmDonate()" style="margin-top:16px">确 认</button>
-    <button class="btn ghost" onclick="closeDonateNotice()" style="margin-top:10px">以后再说</button>
   </div>
 </div>
 
@@ -600,32 +598,26 @@ function downloadApp(){
 }
 function openContact(){showContactTab('wx');document.getElementById('contactModal').classList.add('show');if(window.__lgRefresh)window.__lgRefresh();}
 function closeContact(){document.getElementById('contactModal').classList.remove('show');}
+function revealDonate(){
+  var m=document.getElementById('afdMask');
+  if(m) m.style.display='none';
+  try{ localStorage.setItem('__donate_notice_v1','1'); }catch(e){}
+}
+function syncDonateMask(){
+  var m=document.getElementById('afdMask');
+  if(!m) return;
+  var seen=null;
+  try{ seen=localStorage.getItem('__donate_notice_v1'); }catch(e){}
+  m.style.display = seen ? 'none' : '';
+}
 function showContactTab(t){
   document.getElementById('ctTabWx').classList.toggle('active', t==='wx');
   document.getElementById('ctTabAfd').classList.toggle('active', t==='afd');
   document.getElementById('ctWx').classList.toggle('hidden', t!=='wx');
   document.getElementById('ctAfd').classList.toggle('hidden', t!=='afd');
+  if(t==='afd') syncDonateMask();
 }
-function closeDonateNotice(){
-  document.getElementById('donateNotice').classList.remove('show');
-  try{ localStorage.setItem('__donate_notice_v1','1'); }catch(e){}
-}
-function confirmDonate(){
-  closeDonateNotice();
-  showContactTab('afd');
-  document.getElementById('contactModal').classList.add('show');
-  if(window.__lgRefresh) window.__lgRefresh();
-}
-(function initDonateNotice(){
-  var seen=null;
-  try{ seen=localStorage.getItem('__donate_notice_v1'); }catch(e){}
-  if(seen) return;
-  setTimeout(function(){
-    if(document.getElementById('__announce_ov')) return;   // 公告优先，别叠两层
-    var n=document.getElementById('donateNotice');
-    if(n){ n.classList.add('show'); if(window.__lgRefresh) window.__lgRefresh(); }
-  }, 1500);
-})();
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeContact();});
 function openPwd(){document.getElementById('pwdModal').classList.add('show');document.getElementById('pwdMsg').textContent='';if(window.__lgRefresh)window.__lgRefresh();}
 function closePwd(){document.getElementById('pwdModal').classList.remove('show');}
