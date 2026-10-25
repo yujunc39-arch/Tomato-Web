@@ -18,15 +18,19 @@
     return Math.min(Math.max(qx, qy), 0) + len(Math.max(qx, 0), Math.max(qy, 0)) - r;
   }
 
-  /* 默认扭曲：边缘向内收，中心不动 */
+  /* 边缘折射：中心完全不动，只有最外 band 圈产生向内弯曲 */
   function makeFragment(o) {
+    var band = o.band == null ? 0.22 : o.band;     // 折射带占半径的比例
+    var norm = 0.48;                                // 中心到边缘的 SDF 距离
     return function (uv) {
       var ix = uv.x - 0.5;
       var iy = uv.y - 0.5;
-      var d = roundedRectSDF(ix, iy, 0.5, 0.5, o.radius);   // 归一化后的圆角矩形距离场
-      var rim = smoothStep(o.rim, 0, d + o.rim * 0.35);     // 越靠边越强
-      var amt = 1 - rim * o.amount;                          // <1 → 向中心放大
-      return { x: ix * amt + 0.5, y: iy * amt + 0.5, rim: rim };
+      var d = roundedRectSDF(ix, iy, norm, norm, o.radius);   // 中心 -0.48 → 边缘 0
+      var t = 1 + d / norm;                                    // 0=中心, 1=边缘
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+      var rim = smoothStep(1 - band, 1, t);                     // 只在最外 band 内从 0 → 1
+      var amt = 1 - rim * o.amount;                             // <1 → 向中心压缩
+      return { x: ix * amt + 0.5, y: iy * amt + 0.5 };
     };
   }
 
@@ -36,8 +40,8 @@
     if (el.__lg) { el.__lg.render(); return el.__lg; }
 
     var o = {
-      rim: opts.rim == null ? 0.16 : opts.rim,            // 折射带厚度（相对短边）
-      amount: opts.amount == null ? 0.22 : opts.amount,    // 边缘最大压缩量
+      band: opts.band == null ? 0.22 : opts.band,          // 折射带厚度（占半径比例）
+      amount: opts.amount == null ? 0.45 : opts.amount,    // 边缘最大向内压缩量
       radius: opts.radius == null ? 0.34 : opts.radius,    // 圆角（归一化）
       blur: opts.blur == null ? 0.4 : opts.blur,
       saturate: opts.saturate == null ? 1.7 : opts.saturate,
