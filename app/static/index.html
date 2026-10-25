@@ -372,10 +372,7 @@ function initLiquidGlass(){
   var base={band:0.42,amount:0.16,radius:0.34,blur:0.4,saturate:1.38,contrast:1.03,brightness:1.0};
   // 小元素用更宽的折射带，否则边缘这一圈看不见
   var small={band:0.34,amount:0.16,radius:0.34,blur:0.4,saturate:1.38,contrast:1.03,brightness:1.0};
-  function optsFor(el){
-    var r=el.getBoundingClientRect();
-    return Math.min(r.width,r.height) < 130 ? small : base;
-  }
+  function optsFor(){ return base; }   // 面板卡与首页卡完全同一套参数
   ['#authCard','.tile','.box','.gbox'].forEach(function(sel){
     document.querySelectorAll(sel).forEach(function(el){ LiquidGlass.attach(el,optsFor(el)); });
   });
@@ -518,6 +515,8 @@ async function loadDash(){
     dm.className='msg ok';
     dm.textContent='✅ 空间已启动 · 启动于 '+fmtBJ(d.started_at);
   }
+  // 面板刚显示出来时尺寸才存在，补挂一次玻璃（与首页同一套参数）
+  if(window.__lgRefresh) setTimeout(window.__lgRefresh, 30);
 }
 function fmtBJ(ts){
   const d=new Date(ts*1000), p=n=>String(n).padStart(2,'0');
