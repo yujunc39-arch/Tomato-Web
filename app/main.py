@@ -743,6 +743,29 @@ async def admin_login(data: dict, request: Request):
     audit(user, request, "管理员登录后台", f"账号={username}")
     return resp
 
+@app.post("/api/session/refresh")
+async def refresh_session(request: Request):
+    """用 Bearer token 换一份新的 cookie 会话。
+    场景：浏览器清掉了 cookie（但 localStorage 里的 token 还在），
+    访问 /linjiuser 这类靠 cookie 判定的页面会被踢回登录页，用这个接口补回来。"""
+    data = _token_payload(request)
+    if not data:
+        raise HTTPException(401, "登录状态已失效")
+    u = db.get_user_by_id(data["uid"])
+    if not u or u["status"] != "active":
+        raise HTTPException(401, "账号不可用")
+    pv = db.get_pwd_version(u["id"])
+    sid = db.create_session(u["id"], pv)
+    token = make_token(u["id"], effective_admin(u), sid, pv)
+    resp = JSONResponse({"ok": True, "token": token,
+                         "username": u["username"], "is_admin": effective_admin(u)})
+    try:
+        resp.set_cookie("token", token, domain=COOKIE_DOMAIN, path="/",
+                        httponly=True, secure=True, samesite="lax", max_age=JWT_TTL)
+    except Exception:
+        pass
+    return resp
+
 @app.post("/api/logout")
 async def logout(request: Request):
     """退出登录: 吊销当前会话(旧 token 立即失效) + 清 cookie。"""
