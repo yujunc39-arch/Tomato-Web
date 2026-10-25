@@ -22,10 +22,8 @@
     ov.innerHTML =
       '<div id="__announce_box" style="position:relative;max-width:430px;width:100%;max-height:80vh;' +
       'overflow:auto;border-radius:26px;padding:22px;background:transparent;' +
-      '-webkit-backdrop-filter:blur(1.6px) saturate(1.38);backdrop-filter:blur(1.6px) saturate(1.38);' +
-      'box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),inset 0 1px 0 rgba(255,255,255,.85),' +
-      'inset 0 -1px 0 rgba(255,255,255,.5),inset 0 -14px 26px -20px rgba(105,100,120,.28),' +
-      '0 0 0 1px rgba(255,255,255,.35),0 22px 48px -26px rgba(105,100,120,.35)">' +
+      '-webkit-backdrop-filter:blur(0.4px) saturate(1.38);backdrop-filter:blur(0.4px) saturate(1.38);' +
+      'box-shadow:0 28px 60px -30px rgba(0,0,0,.6)">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
       '<span style="font-size:19px">📢</span>' +
       '<span style="font-size:17px;font-weight:700;color:#3c3b44">' + esc(d.title || '公告') + '</span></div>' +
@@ -33,16 +31,15 @@
       esc(d.content || '') + '</div>' +
       '<div style="margin-top:16px;text-align:right">' +
       '<button id="__announce_ok" style="border:0;border-radius:14px;padding:10px 20px;font-size:14px;' +
-      'font-weight:600;cursor:pointer;color:#3a3942;font-family:inherit;background:rgba(255,255,255,.18);' +
-      'box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),inset 0 1px 0 rgba(255,255,255,.95),' +
-      '0 8px 18px -14px rgba(105,100,120,.6)">我知道了</button></div>' +
+      'font-weight:600;cursor:pointer;color:#ffffff;font-family:inherit;background:rgba(255,255,255,.10);' +
+      'backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);box-shadow:0 10px 24px -18px rgba(0,0,0,.55)">我知道了</button></div>' +
       '</div>';
     (document.body || document.documentElement).appendChild(ov);
     // 若站点已加载液态玻璃实现，则让公告卡也走折射
     try {
       var box = document.getElementById('__announce_box');
       if (box && window.LiquidGlass && window.LiquidGlass.attach) {
-        window.LiquidGlass.attach(box, { rim: 0.22, amount: 0.52, radius: 0.34, blur: 1.6, saturate: 1.38, contrast: 1.03, brightness: 1.0 });
+        window.LiquidGlass.attach(box, { band: 0.12, amount: 0.30, radius: 0.34, blur: 0.4, saturate: 1.38, contrast: 1.03, brightness: 1.0 });
       }
     } catch (e) {}
     var btn = document.getElementById('__announce_ok');
