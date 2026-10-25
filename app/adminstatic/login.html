@@ -172,6 +172,19 @@ async function doLogin(){
   }catch(e){m.className='msg err';m.textContent='网络错误，请重试';}
 }
 ['u','p'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
+
+/* 自动续期：cookie 被清掉但 localStorage 里 token 仍有效时，静默换回 cookie 并直接进后台 */
+(async function resumeSession(){
+  const t = localStorage.getItem('token');
+  if(!t) return;
+  try{
+    const r = await fetch('/api/session/refresh', {method:'POST', headers:{'Authorization':'Bearer '+t}});
+    if(!r.ok) { localStorage.removeItem('token'); return; }
+    const d = await r.json();
+    if(d.token) localStorage.setItem('token', d.token);
+    if(d.is_admin) location.replace('/linjiuser');
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
