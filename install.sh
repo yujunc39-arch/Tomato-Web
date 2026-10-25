@@ -123,6 +123,19 @@ for f in nginx-main nginx-block; do
   ln -sf /etc/nginx/sites-available/$f /etc/nginx/sites-enabled/$f
 done
 [ -L /etc/nginx/sites-enabled/default ] && rm -f /etc/nginx/sites-enabled/default || true
+
+# Cloudflare 真实 IP 还原（站点走橙云时必需）
+# 少了这个，$remote_addr 全是 CF 边缘 IP -> 登录限流会跨用户串号、审计日志无法追溯
+if [ -f "$SRC_DIR/deploy/cloudflare-realip.conf" ]; then
+  mkdir -p /etc/nginx/conf.d
+  cp "$SRC_DIR/deploy/cloudflare-realip.conf" /etc/nginx/conf.d/cloudflare-realip.conf
+  chmod 644 /etc/nginx/conf.d/cloudflare-realip.conf
+  if grep -q 'include /etc/nginx/conf.d/\*.conf' /etc/nginx/nginx.conf; then
+    log "Cloudflare 真实 IP 还原已安装"
+  else
+    warn "nginx.conf 未 include /etc/nginx/conf.d/*.conf，真实 IP 还原不会生效！"
+  fi
+fi
 # 用户子域配置由 instances.render_nginx() 动态生成（写入 tomato-users）
 printf '# 用户子域配置：由 instances.render_nginx() 自动生成，请勿手改\n' \
     > /etc/nginx/sites-available/tomato-users

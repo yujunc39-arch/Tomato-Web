@@ -81,6 +81,7 @@
 │   ├── tomato-gateway.service   # systemd 单元
 │   ├── nginx-main.conf          # 主站 nginx 配置
 │   ├── nginx-block.conf         # IP/未知域名兜底（444 掐断）
+│   ├── cloudflare-realip.conf   # Cloudflare 真实 IP 还原（走橙云必需）
 │   └── reload-nginx.sh          # 重新生成用户子域配置并 reload
 ├── install.sh             # 一键部署脚本
 ├── .env.example           # 配置模板
@@ -254,6 +255,27 @@ systemctl restart tomato-gateway
 systemctl restart tomato-gateway      # 改了 main.py / db.py / instances.py
 nginx -s reload                       # 只改了 nginx / 证书
 ```
+
+**Cloudflare 代理（橙云）**
+
+主站 DNS 若开橙云，`deploy/cloudflare-realip.conf` 会被装到 `/etc/nginx/conf.d/`，
+把 `CF-Connecting-IP` 还原成真实访客 IP。
+
+| 有它 | 没它 |
+|------|------|
+| `$remote_addr` = 真实访客 IP | `$remote_addr` 全是 CF 边缘 IP |
+| 登录限流按人计算 | **限流跨用户串号**（一个人输错能锁住所有人） |
+| 审计日志可追溯 | 日志里查不到人 |
+
+- 只有来自 **CF 网段**的请求才信任该头，直连源站时伪造无效
+- CF 网段极少变动；需要更新时重新拉取并 reload：
+  ```bash
+  curl -s -H "Authorization: Bearer $CF_TOKEN" \
+       https://api.cloudflare.com/client/v4/ips
+  ```
+- ⚠️ **免费版 Universal 证书只覆盖一级子域**：
+  `tomato.你的域名` 可以开橙云，但 `u<N>.你的域名` 这类二级子域**不能开**
+  （会报 `ERR_SSL_VERSION_OR_CIPHER_MISMATCH`），必须保持灰云直连
 
 **日志**
 
