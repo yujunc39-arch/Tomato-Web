@@ -17,7 +17,7 @@
     ov.style.cssText =
       'position:fixed;inset:0;z-index:2147483647;' +
       'display:flex;align-items:center;justify-content:center;padding:20px;' +
-      'background:rgba(238,238,242,.2);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);' +
+      'background:rgba(8,6,14,.45);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);' +
       'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
     ov.innerHTML =
       '<div id="__announce_box" style="position:relative;max-width:430px;width:100%;max-height:80vh;' +
