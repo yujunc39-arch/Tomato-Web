@@ -30,8 +30,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC
 
 /* 液态玻璃（backdrop-filter 由 /static/liquid-glass.js 注入） */
 .brandIcon{position:relative;width:120px;height:120px;margin:0 auto 6px;background:none;box-shadow:none}
-.brandIcon .markGlass{position:absolute;left:18px;top:18px;width:84px;height:84px;border-radius:50%;
-  background:rgba(255,255,255,.07);opacity:0;animation:lgFade .7s ease .95s forwards}
 .brandIcon .mark{position:relative;width:120px;height:120px;color:rgba(255,255,255,.95);
   filter:drop-shadow(0 3px 10px rgba(0,0,0,.45))}
 .brandIcon .mark circle,.brandIcon .mark path{
@@ -41,8 +39,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC
 @keyframes lgFade{to{opacity:1}}
 @media (prefers-reduced-motion:reduce){
   .brandIcon .mark circle,.brandIcon .mark path{animation:none;stroke-dashoffset:0}
-  .brandIcon .markGlass{animation:none;opacity:1}
-}
+  }
 .glass{position:relative;border-radius:var(--r-card);isolation:isolate;overflow:hidden;width:100%;max-width:392px;
   background:rgba(10,8,16,.10);
   box-shadow:0 20px 44px -26px rgba(0,0,0,.5);}
@@ -83,9 +80,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC
 .msg.err{color:#ff9aa6}
 .msg.ok{color:#8fe3c0}
 .foot{margin-top:16px;font-size:11.5px;color:var(--ink3);letter-spacing:.4px;text-align:center}
-@media (prefers-reduced-motion:reduce){.brandIcon .markGlass{position:absolute;left:50%;top:27px;width:86px;height:78px;margin-left:-43px;border-radius:50%;
-  background:rgba(255,255,255,.07)}
-.brandIcon .mark{position:relative;width:120px;height:112px;color:rgba(255,255,255,.94);
+@media (prefers-reduced-motion:reduce){.brandIcon .mark{position:relative;width:120px;height:112px;color:rgba(255,255,255,.94);
   filter:drop-shadow(0 3px 10px rgba(0,0,0,.45))}
 .brandIcon .mark path,.brandIcon .mark circle{vector-effect:non-scaling-stroke}}
 </style>
@@ -136,9 +131,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC
   function init(){
     if(!window.LiquidGlass) return;
     var el=document.querySelector('.glass');
-    if(el) LiquidGlass.attach(el,{band:0.12,amount:0.30,radius:0.34,blur:0.4,saturate:1.38,contrast:1.03,brightness:1.0});
-    var ic=document.querySelector('.logo .icon');
-    if(ic) LiquidGlass.attach(ic,{band:0.12,amount:0.30,radius:0.33,blur:0.4,saturate:1.4,contrast:1.03,brightness:1.0});
+    if(el) LiquidGlass.attach(el,{band:0.055,amount:0.28,radius:0.34,blur:0.4,saturate:1.38,contrast:1.03,brightness:1.0});
   }
   init(); window.addEventListener('load',init);
 })();
