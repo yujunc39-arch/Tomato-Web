@@ -2,7 +2,7 @@
 (function () {
   if (window.__announceLoaded) return;
   window.__announceLoaded = true;
-  window.__ANNOUNCE_VER__ = '3-gate-aware';   // 版本标记，便于确认浏览器加载的是新脚本
+  window.__ANNOUNCE_VER__ = '4-glass';   // 版本标记，便于确认浏览器加载的是新脚本
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -15,22 +15,36 @@
     var ov = document.createElement('div');
     ov.id = '__announce_ov';
     ov.style.cssText =
-      'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2147483647;' +
+      'position:fixed;inset:0;z-index:2147483647;' +
       'display:flex;align-items:center;justify-content:center;padding:20px;' +
+      'background:rgba(238,238,242,.2);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);' +
       'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
     ov.innerHTML =
-      '<div style="background:#fff;border-radius:16px;max-width:430px;width:100%;max-height:80vh;' +
-      'overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">' +
-      '<div style="padding:20px 22px 4px;display:flex;align-items:center;gap:8px">' +
-      '<span style="font-size:20px">📢</span>' +
-      '<span style="font-size:17px;font-weight:700;color:#e8590c">' + esc(d.title || '公告') + '</span></div>' +
-      '<div style="padding:10px 22px 16px;font-size:14px;color:#3d2b1f;line-height:1.75;white-space:pre-wrap;word-break:break-word">' +
+      '<div id="__announce_box" style="position:relative;max-width:430px;width:100%;max-height:80vh;' +
+      'overflow:auto;border-radius:26px;padding:22px;background:transparent;' +
+      '-webkit-backdrop-filter:blur(1.6px) saturate(1.38);backdrop-filter:blur(1.6px) saturate(1.38);' +
+      'box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),inset 0 1px 0 rgba(255,255,255,.85),' +
+      'inset 0 -1px 0 rgba(255,255,255,.5),inset 0 -14px 26px -20px rgba(105,100,120,.28),' +
+      '0 0 0 1px rgba(255,255,255,.35),0 22px 48px -26px rgba(105,100,120,.35)">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+      '<span style="font-size:19px">📢</span>' +
+      '<span style="font-size:17px;font-weight:700;color:#3c3b44">' + esc(d.title || '公告') + '</span></div>' +
+      '<div style="font-size:14px;color:rgba(53,52,58,.82);line-height:1.8;white-space:pre-wrap;word-break:break-word">' +
       esc(d.content || '') + '</div>' +
-      '<div style="padding:0 22px 20px;text-align:right">' +
-      '<button id="__announce_ok" style="background:#e8590c;color:#fff;border:none;border-radius:10px;' +
-      'padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer">我知道了</button></div>' +
+      '<div style="margin-top:16px;text-align:right">' +
+      '<button id="__announce_ok" style="border:0;border-radius:14px;padding:10px 20px;font-size:14px;' +
+      'font-weight:600;cursor:pointer;color:#3a3942;font-family:inherit;background:rgba(255,255,255,.18);' +
+      'box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),inset 0 1px 0 rgba(255,255,255,.95),' +
+      '0 8px 18px -14px rgba(105,100,120,.6)">我知道了</button></div>' +
       '</div>';
     (document.body || document.documentElement).appendChild(ov);
+    // 若站点已加载液态玻璃实现，则让公告卡也走折射
+    try {
+      var box = document.getElementById('__announce_box');
+      if (box && window.LiquidGlass && window.LiquidGlass.attach) {
+        window.LiquidGlass.attach(box, { rim: 0.22, amount: 0.52, radius: 0.34, blur: 1.6, saturate: 1.38, contrast: 1.03, brightness: 1.0 });
+      }
+    } catch (e) {}
     var btn = document.getElementById('__announce_ok');
     if (btn) btn.onclick = function () {
       try { localStorage.setItem('__announce_seen', String(d.id || '')); } catch (e) {}
