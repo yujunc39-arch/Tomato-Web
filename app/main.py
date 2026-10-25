@@ -679,7 +679,13 @@ async def login(data: dict, request: Request):
     if left:
         raise HTTPException(429, f"尝试过于频繁，请 {left} 秒后再试")
     user = find_user_by_ident(username)
-    if not user or not user.get("password_hash") or not verify_pw(password, user["password_hash"]):
+    if not user:
+        # 明确区分「未注册」，方便用户直接去注册，不用反复猜密码。
+        # 取舍说明：这会暴露"某个用户名是否已注册"（用户名枚举）。
+        # 缓解措施：登录限流（同 IP+用户名 连续失败 5 次锁 5 分钟）会拖慢批量探测。
+        _login_fail(key)
+        raise HTTPException(401, "用户不存在，请先注册")
+    if not user.get("password_hash") or not verify_pw(password, user["password_hash"]):
         _login_fail(key)
         raise HTTPException(401, "账号或密码错误")
     if user["status"] == "banned":
