@@ -30,59 +30,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC
 
 /* 液态玻璃（backdrop-filter 由 /static/liquid-glass.js 注入） */
 .glass{position:relative;border-radius:var(--r-card);isolation:isolate;overflow:hidden;width:100%;max-width:392px;
-  background:transparent;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.55),
-    inset 0 1px 0 rgba(255,255,255,.85),
-    inset 0 -1px 0 rgba(255,255,255,.5),
-    inset 0 -14px 26px -20px rgba(0,0,0,.34),
-    0 0 0 1px rgba(255,255,255,.35),
-    0 22px 48px -26px rgba(0,0,0,.45)}
+  background:rgba(10,8,16,.10);
+  box-shadow:0 20px 44px -26px rgba(0,0,0,.5);}
 .cardIn{position:relative;z-index:3;padding:26px 22px 24px}
 .logo{text-align:center;margin-bottom:22px}
 .logo .icon{width:66px;height:66px;margin:0 auto 12px;border-radius:22px;display:grid;place-items:center;font-size:32px;
-  background:transparent;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.55),
-    inset 0 1px 0 rgba(255,255,255,.85),
-    inset 0 -1px 0 rgba(255,255,255,.5),
-    inset 0 -14px 26px -20px rgba(0,0,0,.34),
-    0 0 0 1px rgba(255,255,255,.35),
-    0 22px 48px -26px rgba(0,0,0,.45);}
+  background:rgba(10,8,16,.10);
+  box-shadow:0 16px 34px -20px rgba(0,0,0,.55);}
 .logo h1{font-size:20px;font-weight:700;letter-spacing:.2px;color:#ffffff}
 .logo p{font-size:12.5px;color:var(--ink2);margin-top:6px}
 
 .field{position:relative;margin-bottom:13px}
-.input{width:100%;height:52px;padding:0 16px;border-radius:var(--r-field);border:1px solid rgba(255,255,255,.36);
+.input{width:100%;height:52px;padding:0 16px;border-radius:var(--r-field);border:0;
   color:var(--ink);font-size:16px;font-family:inherit;outline:none;background:rgba(255,255,255,.10);
   -webkit-backdrop-filter:blur(8px) saturate(150%);backdrop-filter:blur(8px) saturate(150%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 1px 2px rgba(140,138,150,.1);
+  box-shadow:0 10px 24px -22px rgba(0,0,0,.4);
   transition:border-color .25s,box-shadow .3s,background .25s}
 .input::placeholder{color:var(--ink3)}
-.input:focus{border-color:#fff;background:rgba(255,255,255,.10);
-  box-shadow:inset 0 1px 0 #fff,0 0 0 4px rgba(200,190,255,.34),0 10px 24px -14px rgba(120,114,138,.5)}
+.input:focus{outline:none;background:rgba(255,255,255,.16);box-shadow:0 0 0 3px rgba(200,190,255,.28);}
 .field.hasEye .input{padding-right:52px}
 .eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;display:grid;place-items:center;
   border:0;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.28);color:rgba(255,255,255,.8);transition:.2s;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+  box-shadow:none;}
 .eye:active{background:#fff}
 
 .btn{position:relative;width:100%;height:52px;border:0;border-radius:var(--r-field);overflow:hidden;
   font-size:16px;font-weight:650;font-family:inherit;color:#ffffff;cursor:pointer;
   background:rgba(255,255,255,.10);
   -webkit-backdrop-filter:blur(2px) saturate(1.25);backdrop-filter:blur(2px) saturate(1.25);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.7),
-    inset 0 1px 0 rgba(255,255,255,.95),
-    inset 0 -1px 0 rgba(255,255,255,.5),
-    0 0 0 1px rgba(255,255,255,.32),
-    0 14px 28px -20px rgba(0,0,0,.5);
+  box-shadow:0 14px 30px -20px rgba(0,0,0,.55);
   transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .25s,background .2s}
 .btn::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.38;mix-blend-mode:soft-light;
   background:radial-gradient(150px 70px at var(--mx,50%) var(--my,0%),#fff,transparent 62%)}
 .btn:hover{background:rgba(255,255,255,.18)}
-.btn:active{transform:scale(.975);background:rgba(255,255,255,.22);
-  box-shadow:inset 0 2px 8px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.6)}
+.btn:active{transform:scale(.975);background:rgba(255,255,255,.22)}
 .msg{text-align:center;margin-top:12px;font-size:13.5px;min-height:20px;line-height:1.55;color:var(--ink2)}
 .msg.err{color:#ff9aa6}
 .msg.ok{color:#8fe3c0}
@@ -121,16 +102,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC
     </div>
   </section>
 </div>
-<script src="/static/liquid-glass.js?v=1"></script>
+<script src="/static/liquid-glass.js?v=2"></script>
 <script>
 /* ---- 液态玻璃（移植 rdev/liquid-glass-react） ---- */
 (function(){
   function init(){
     if(!window.LiquidGlass) return;
     var el=document.querySelector('.glass');
-    if(el) LiquidGlass.attach(el,{rim:0.22,amount:0.5,radius:0.34,blur:1.6,saturate:1.38,contrast:1.03,brightness:1.0});
+    if(el) LiquidGlass.attach(el,{band:0.12,amount:0.30,radius:0.34,blur:0.4,saturate:1.38,contrast:1.03,brightness:1.0});
     var ic=document.querySelector('.logo .icon');
-    if(ic) LiquidGlass.attach(ic,{rim:0.24,amount:0.5,radius:0.33,blur:1.6,saturate:1.4,contrast:1.03,brightness:1.0});
+    if(ic) LiquidGlass.attach(ic,{band:0.12,amount:0.30,radius:0.33,blur:0.4,saturate:1.4,contrast:1.03,brightness:1.0});
   }
   init(); window.addEventListener('load',init);
 })();
