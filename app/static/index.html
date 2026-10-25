@@ -375,7 +375,7 @@ function initLiquidGlass(){
     var r=el.getBoundingClientRect();
     return Math.min(r.width,r.height) < 130 ? small : base;
   }
-  ['#authCard','.tile','.box','.gbox','.input','.btn','.enterLink'].forEach(function(sel){
+  ['#authCard','.tile','.box','.gbox'].forEach(function(sel){
     document.querySelectorAll(sel).forEach(function(el){ LiquidGlass.attach(el,optsFor(el)); });
   });
   // 番茄图标：小尺寸 + 磨砂，边缘一圈压缩才看得出来
