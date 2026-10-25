@@ -26,8 +26,8 @@
       'box-shadow:0 28px 60px -30px rgba(0,0,0,.6)">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
       '<span style="font-size:19px">📢</span>' +
-      '<span style="font-size:17px;font-weight:700;color:#3c3b44">' + esc(d.title || '公告') + '</span></div>' +
-      '<div style="font-size:14px;color:rgba(53,52,58,.82);line-height:1.8;white-space:pre-wrap;word-break:break-word">' +
+      '<span style="font-size:17px;font-weight:700;color:#ffffff">' + esc(d.title || '公告') + '</span></div>' +
+      '<div style="font-size:14px;color:rgba(255,255,255,.88);line-height:1.8;white-space:pre-wrap;word-break:break-word">' +
       esc(d.content || '') + '</div>' +
       '<div style="margin-top:16px;text-align:right">' +
       '<button id="__announce_ok" style="border:0;border-radius:14px;padding:10px 20px;font-size:14px;' +
