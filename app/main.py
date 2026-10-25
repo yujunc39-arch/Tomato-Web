@@ -182,11 +182,25 @@ def check_email(e: str, strict_domain: bool = True):
     if not ok:
         raise HTTPException(400, msg)
 
-def send_mail(to_addr: str, subject: str, body: str):
-    """发送纯文本邮件（标准库 smtplib，不引入额外依赖）。"""
-    import smtplib, ssl as _ssl
+def _mail_domain() -> str:
+    """从 SMTP_FROM 里取出域名，用于生成 Message-ID。"""
+    raw = (SMTP_FROM or "").strip().strip(">").strip()
+    if "@" not in raw:
+        return ""
+    dom = raw.rsplit("@", 1)[-1].strip()
+    return dom if re.fullmatch(r"[A-Za-z0-9.\-]+", dom or "") else ""
+
+def build_mail(to_addr: str, subject: str, body: str, html: str | None = None):
+    """构造邮件对象（纯本地，不做网络操作，便于测试 MIME 结构）。
+
+    始终是 multipart/alternative：纯文本 + HTML 双 part。
+    纯文本那份绝不能省 —— 只有 HTML 的邮件反而更容易被判垃圾邮件，
+    而且纯文本终端、无障碍读屏、部分企业网关都依赖它。
+    """
     from email.message import EmailMessage
     from email.header import Header
+    from email.utils import formatdate, make_msgid
+
     msg = EmailMessage()
     msg["Subject"] = str(Header(subject, "utf-8"))
     # 加个中文发件人显示名，收件箱里更可信（纯地址会自动补上）
@@ -195,7 +209,56 @@ def send_mail(to_addr: str, subject: str, body: str):
         from_addr = "番茄小说下载器 <{}>".format(from_addr)
     msg["From"] = from_addr
     msg["To"] = to_addr
+    # Date 与 Message-ID 是正规发送方的基本特征，缺失会被部分反垃圾引擎扣分
+    msg["Date"] = formatdate(localtime=True)
+    dom = _mail_domain()
+    msg["Message-ID"] = make_msgid(domain=dom) if dom else make_msgid()
+    # 声明这是系统自动发送的事务型邮件（非批量营销），Gmail 等会据此区别对待
+    msg["Auto-Submitted"] = "auto-generated"
     msg.set_content(body, charset="utf-8")
+    if html:
+        msg.add_alternative(html, subtype="html", charset="utf-8")
+    return msg
+
+def code_mail_html(code: str, ttl_min: int) -> str:
+    """注册验证码邮件的 HTML 版本（inline style、无外链图片、无追踪像素）。"""
+    return """<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>注册验证码</title></head>
+<body style="margin:0;padding:0;background:#f6f7f9;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7f9;padding:28px 12px;">
+<tr><td align="center">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;background:#ffffff;border-radius:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;">
+    <tr><td style="background:#e8590c;padding:22px 26px;border-radius:14px 14px 0 0;">
+      <span style="font-size:19px;font-weight:700;color:#ffffff;">番茄小说下载器</span>
+    </td></tr>
+    <tr><td style="padding:28px 26px 6px;">
+      <p style="margin:0 0 14px;font-size:15px;color:#3d2b1f;line-height:1.7;">您好，</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#3d2b1f;line-height:1.7;">您正在注册「番茄小说下载器」，本次验证码为：</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 22px;">
+        <tr><td style="background:#fff4e6;border:1px dashed #f0c9a8;border-radius:12px;padding:16px 28px;">
+          <span style="font-size:30px;font-weight:700;letter-spacing:6px;color:#e8590c;font-family:Menlo,Consolas,monospace;">{code}</span>
+        </td></tr>
+      </table>
+      <p style="margin:0 0 10px;font-size:14px;color:#8a6d54;line-height:1.7;">验证码 <b style="color:#e8590c;">{ttl} 分钟</b>内有效，请勿泄露给他人。</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#8a6d54;line-height:1.7;">如非本人操作，请忽略本邮件，您的账号不会受到任何影响。</p>
+    </td></tr>
+    <tr><td style="padding:0 26px 26px;">
+      <div style="border-top:1px solid #f0ece8;padding-top:16px;font-size:12px;color:#a8927e;line-height:1.8;">
+        此邮件由系统自动发送，请勿直接回复。<br>
+        番茄小说下载器 · 在线搜索 / 下载 / 阅读
+      </div>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body></html>""".format(code=code, ttl=ttl_min)
+
+def send_mail(to_addr: str, subject: str, body: str, html: str | None = None):
+    """发送邮件：multipart/alternative（纯文本 + HTML 两个 part）。"""
+    import smtplib, ssl as _ssl
+    msg = build_mail(to_addr, subject, body, html)
     if SMTP_SSL:
         with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20,
                               context=_ssl.create_default_context()) as s:
@@ -526,15 +589,17 @@ async def register_send_code(data: dict, request: Request):
         raise HTTPException(429, err)
     rec[0] += 1
     _mail_ips[ip] = rec
+    ttl_min = db.CODE_TTL // 60
     body = (
         "您好，\n\n"
         "您正在注册「番茄小说下载器」。本次验证码为：\n\n"
         "        {code}\n\n"
         "验证码 {ttl} 分钟内有效。如非本人操作，请忽略本邮件。\n\n"
         "—— 番茄小说下载器"
-    ).format(code=code, ttl=db.CODE_TTL // 60)
+    ).format(code=code, ttl=ttl_min)
     try:
-        send_mail(email, "【番茄小说下载器】注册验证码", body)
+        send_mail(email, "【番茄小说下载器】注册验证码", body,
+                  html=code_mail_html(code, ttl_min))
     except Exception as e:
         emsg = str(e).lower()
         # 发信服务商额度耗尽 -> 统一按"今日名额已满"提示
