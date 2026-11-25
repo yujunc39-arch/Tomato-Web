@@ -1,0 +1,10 @@
+[Unit]
+Description=Run tomato auto-update every 2 hours
+
+[Timer]
+OnCalendar=*-*-* 00/2:17
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

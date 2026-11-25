@@ -1,117 +1,80 @@
-/* 全站公告弹窗 —— 由 nginx 注入到所有 HTML 页面(主站/用户空间/后台) */
+/* 全站公告 —— 雾蓝 · 克制版（由 nginx 注入到所有 HTML 页面） */
 (function () {
   if (window.__announceLoaded) return;
   window.__announceLoaded = true;
-  window.__ANNOUNCE_VER__ = '5-adaptive';   // 版本标记，便于确认浏览器加载的是新脚本
+  window.__ANNOUNCE_VER__ = '8-quiet';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-
-  /* 估算页面背景亮度：优先看 body/html 的底色与渐变，其次看视口中心元素的底色 */
-  function pageIsLight() {
-    var cols = [];
-    function parse(str) {
-      if (!str) return;
-      var m = str.match(/rgba?\([^)]+\)/g) || [];
-      for (var i = 0; i < m.length; i++) {
-        var p = m[i].match(/[\d.]+/g);
-        if (!p || p.length < 3) continue;
-        var a = p.length > 3 ? parseFloat(p[3]) : 1;
-        if (a < 0.05) continue;
-        cols.push([+p[0], +p[1], +p[2]]);
-      }
-    }
-    [document.documentElement, document.body].forEach(function (el) {
-      if (!el) return;
-      var cs = getComputedStyle(el);
-      parse(cs.backgroundColor);
-      parse(cs.backgroundImage);
-    });
-    if (!cols.length) {
-      try {
-        var e = document.elementFromPoint(Math.round(innerWidth / 2), Math.round(innerHeight / 2));
-        while (e && e !== document.documentElement) {
-          var cs2 = getComputedStyle(e);
-          var bc = cs2.backgroundColor;
-          if (bc && bc !== 'rgba(0, 0, 0, 0)' && bc !== 'transparent') { parse(bc); break; }
-          if (cs2.backgroundImage && cs2.backgroundImage !== 'none') { parse(cs2.backgroundImage); break; }
-          e = e.parentElement;
-        }
-      } catch (err) {}
-    }
-    if (!cols.length) return false;              // 判断不了就当暗色（照片背景站点的默认）
-    var sum = 0;
-    cols.forEach(function (c) {
-      sum += (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255;
-    });
-    return (sum / cols.length) > 0.62;
+  function fmtDate(s) {
+    var m = String(s || '').match(/(\d{4})-(\d{2})-(\d{2})/);
+    return m ? (+m[2]) + ' 月 ' + (+m[3]) + ' 日' : '';
   }
+
+  var E = 'cubic-bezier(.32,.72,0,1)';
+  var CSS =
+    '#__an_ov{--bg:rgba(238,242,246,.45);--card:rgba(250,252,254,.78);--ink:#16212c;--ink2:#4a5a6a;--ink3:#8a98a7;--line:rgba(22,33,44,.1);--tint:#2f4a63;' +
+      '--hi:rgba(255,255,255,.9);--sh:0 1px 2px rgba(22,33,44,.06),0 30px 70px -28px rgba(30,50,72,.4);' +
+      'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;' +
+      'background:var(--bg);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);' +
+      'opacity:0;transition:opacity .45s ' + E + ';' +
+      'font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}' +
+    '@media (prefers-color-scheme:dark){#__an_ov{--bg:rgba(8,12,17,.5);--card:rgba(24,32,42,.82);--ink:#e6edf3;--ink2:#a8b6c4;--ink3:#64748a;' +
+      '--line:rgba(230,237,243,.1);--tint:#b4cbe0;--hi:rgba(210,226,240,.14);--sh:0 30px 70px -28px rgba(0,0,0,.85)}}' +
+    '#__an_ov.in{opacity:1}' +
+    '#__an_box{width:100%;max-width:380px;max-height:76vh;display:flex;flex-direction:column;border-radius:26px;overflow:hidden;color:var(--ink);' +
+      'background:var(--card);-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);' +
+      'box-shadow:inset 0 1px 0 var(--hi),inset 0 0 0 .5px var(--line),var(--sh);' +
+      'transform:translateY(10px) scale(.97);opacity:0;transition:transform .55s ' + E + ',opacity .4s ' + E + '}' +
+    '#__an_ov.in #__an_box{transform:none;opacity:1}' +
+    '#__an_ov.out{opacity:0;transition-duration:.3s}#__an_ov.out #__an_box{transform:scale(.98);opacity:0;transition-duration:.25s}' +
+    '#__an_hd{display:flex;justify-content:space-between;align-items:baseline;padding:24px 26px 0;font-size:12.5px;letter-spacing:.02em}' +
+    '#__an_ey{color:var(--tint);font-weight:600}#__an_dt{color:var(--ink3);font-variant-numeric:tabular-nums}' +
+    '#__an_tt{padding:10px 26px 0;font-size:21px;font-weight:650;letter-spacing:-.025em;line-height:1.3}' +
+    '#__an_bd{margin:12px 0 0;padding:0 26px 22px;overflow:auto;font-size:15px;line-height:1.75;color:var(--ink2);white-space:pre-wrap;word-break:break-word}' +
+    '#__an_ok{display:block;width:100%;height:52px;border:0;border-top:.5px solid var(--line);background:transparent;cursor:pointer;' +
+      'font:inherit;font-size:16px;font-weight:600;color:var(--tint);transition:background .2s}' +
+    '#__an_ok:hover{background:rgba(127,140,155,.08)}#__an_ok:active{background:rgba(127,140,155,.16)}' +
+    '#__an_hd,#__an_tt,#__an_bd{opacity:0;transform:translateY(6px);transition:opacity .5s ' + E + ',transform .5s ' + E + '}' +
+    '#__an_ov.in #__an_hd{opacity:1;transform:none;transition-delay:.08s}' +
+    '#__an_ov.in #__an_tt{opacity:1;transform:none;transition-delay:.13s}' +
+    '#__an_ov.in #__an_bd{opacity:1;transform:none;transition-delay:.18s}' +
+    '@media (max-width:520px){#__an_ov{align-items:flex-end;padding:0 10px calc(10px + env(safe-area-inset-bottom))}#__an_box{max-width:none;border-radius:28px}' +
+      '#__an_box{transform:translateY(40px)}}' +
+    '@media (prefers-reduced-motion:reduce){#__an_ov,#__an_ov *{transition-duration:.01ms!important}}';
 
   function show(d) {
-    if (document.getElementById('__announce_ov')) return;
-    var light = pageIsLight();
-    var theme = light ? {
-      boxBg: 'rgba(255,255,255,.72)',
-      boxBlur: 'blur(18px) saturate(1.1)',
-      boxShadow: '0 28px 60px -30px rgba(90,70,50,.55)',
-      title: '#2b2830',
-      text: 'rgba(43,40,48,.86)',
-      btnBg: 'rgba(255,255,255,.55)',
-      btnColor: '#2b2830',
-      btnShadow: '0 10px 24px -18px rgba(90,70,50,.5)'
-    } : {
-      boxBg: 'transparent',
-      boxBlur: 'blur(0.4px) saturate(1.38)',
-      boxShadow: '0 28px 60px -30px rgba(0,0,0,.6)',
-      title: '#ffffff',
-      text: 'rgba(255,255,255,.88)',
-      btnBg: 'rgba(255,255,255,.10)',
-      btnColor: '#ffffff',
-      btnShadow: '0 10px 24px -18px rgba(0,0,0,.55)'
-    };
-
+    if (document.getElementById('__an_ov')) return;
+    var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
     var ov = document.createElement('div');
-    ov.id = '__announce_ov';
-    ov.style.cssText =
-      'position:fixed;inset:0;z-index:2147483647;' +
-      'display:flex;align-items:center;justify-content:center;padding:20px;' +
-      'background:transparent;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);' +
-      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+    ov.id = '__an_ov';
+    var dt = fmtDate(d.updated);
     ov.innerHTML =
-      '<div id="__announce_box" style="position:relative;max-width:430px;width:100%;max-height:80vh;' +
-      'overflow:auto;border-radius:26px;padding:22px;background:' + theme.boxBg + ';' +
-      '-webkit-backdrop-filter:' + theme.boxBlur + ';backdrop-filter:' + theme.boxBlur + ';' +
-      'box-shadow:' + theme.boxShadow + '">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
-      '<span style="font-size:19px">📢</span>' +
-      '<span style="font-size:17px;font-weight:700;color:' + theme.title + '">' + esc(d.title || '公告') + '</span></div>' +
-      '<div style="font-size:14px;color:' + theme.text + ';line-height:1.8;white-space:pre-wrap;word-break:break-word">' +
-      esc(d.content || '') + '</div>' +
-      '<div style="margin-top:16px;text-align:right">' +
-      '<button id="__announce_ok" style="border:0;border-radius:14px;padding:10px 20px;font-size:14px;' +
-      'font-weight:600;cursor:pointer;color:' + theme.btnColor + ';font-family:inherit;background:' + theme.btnBg + ';' +
-      'backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);box-shadow:' + theme.btnShadow + '">我知道了</button></div>' +
+      '<div id="__an_box" role="dialog" aria-modal="true" aria-labelledby="__an_tt">' +
+        '<div id="__an_hd"><span id="__an_ey">公告</span>' + (dt ? '<span id="__an_dt">' + esc(dt) + '</span>' : '') + '</div>' +
+        '<div id="__an_tt">' + esc(d.title || '公告') + '</div>' +
+        '<div id="__an_bd">' + esc(d.content || '') + '</div>' +
+        '<button id="__an_ok" type="button">知道了</button>' +
       '</div>';
     (document.body || document.documentElement).appendChild(ov);
-    // 暗色页面（照片背景）额外挂液态玻璃折射；浅色页面用磨砂白底保证可读
-    try {
-      var box = document.getElementById('__announce_box');
-      if (!light && box && window.LiquidGlass && window.LiquidGlass.attach) {
-        window.LiquidGlass.attach(box, { band: 0.12, amount: 0.30, radius: 0.34, blur: 0.4, saturate: 1.38, contrast: 1.03, brightness: 1.0 });
-      }
-    } catch (e) {}
-    var btn = document.getElementById('__announce_ok');
-    if (btn) btn.onclick = function () {
+    requestAnimationFrame(function () { requestAnimationFrame(function () { ov.classList.add('in'); }); });
+    var closed = false;
+    function close() {
+      if (closed) return; closed = true;
       try { localStorage.setItem('__announce_seen', String(d.id || '')); } catch (e) {}
-      ov.remove();
-    };
+      ov.classList.add('out'); ov.classList.remove('in');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(function () { ov.remove(); st.remove(); }, 400);
+    }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.getElementById('__an_ok').onclick = close;
+    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    document.addEventListener('keydown', onKey);
   }
 
-  // 页面若有真人校验门，先等它通关再弹公告
-  // （公告的 z-index 是 2147483647，会盖住验证门，所以必须让路）
   function gatePending() {
     if (window.__HUMAN_GATE_PENDING__) return true;
     var g = document.getElementById('gate');
@@ -119,10 +82,8 @@
   }
   function afterGate(cb, tries) {
     tries = tries || 0;
-    if (gatePending() && tries < 240) {          // 最多等 120 秒
-      setTimeout(function () { afterGate(cb, tries + 1); }, 500);
-      return;
-    }
+    if (gatePending() && tries < 240) { setTimeout(function () { afterGate(cb, tries + 1); }, 500); return; }
+    if (document.getElementById('intro') && tries < 260) { setTimeout(function () { afterGate(cb, tries + 1); }, 300); return; }
     cb();
   }
 
@@ -135,17 +96,12 @@
           var seen = null;
           try { seen = localStorage.getItem('__announce_seen'); } catch (e) {}
           if (seen === String(d.id)) return;
-          if (document.body) afterGate(function () { show(d); });
-          else document.addEventListener('DOMContentLoaded', function () {
-            afterGate(function () { show(d); });
-          });
+          afterGate(function () { show(d); });
         })
         .catch(function () {});
     } catch (e) {}
   }
 
-  if (document.readyState === 'loading')
-    document.addEventListener('DOMContentLoaded', run);
-  else
-    run();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
 })();

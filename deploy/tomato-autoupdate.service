@@ -1,0 +1,14 @@
+[Unit]
+Description=Tomato instance binary auto-update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/tomato-multi/app
+ExecStart=/opt/tomato-multi/venv/bin/python /opt/tomato-multi/app/auto_update.py
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target
