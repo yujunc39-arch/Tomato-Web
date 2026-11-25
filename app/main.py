@@ -826,8 +826,17 @@ async def me_set_email(data: dict, request: Request):
 async def me_start(request: Request):
     """懒启动当前用户的番茄实例。"""
     user = current_user(request)
-    instances.render_nginx()   # 确保子域名反代存在
-    ok = instances.start_instance(user["id"], user["port"], user["data_dir"])
+    try:
+        instances.render_nginx()   # 确保子域名反代存在（内容未变时会跳过）
+    except Exception as e:
+        print("render_nginx in me_start failed:", e)
+    try:
+        ok = instances.start_instance(user["id"], user["port"], user["data_dir"])
+    except RuntimeError as e:
+        # 例如实例二进制缺失：给前端一个明确的提示，而不是 500
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"启动失败: {e}")
     db.touch(user["id"])
     return {"ok": ok, "port": user["port"], "subdomain": user["subdomain"],
             "started_at": instances.get_started_at(user["id"]) if ok else None}
@@ -1498,18 +1507,36 @@ async def admin_tomato_update(request: Request):
     old_ver   = _get_current_tomato_version()
     import urllib.request
     tmp = "/tmp/tomato_new_bin"
-    try:
-        req = urllib.request.Request(asset_url, headers={"User-Agent": "tomato-gateway"})
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            with open(tmp, 'wb') as f:
-                while True:
-                    chunk = resp.read(8192)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-        os.chmod(tmp, 0o755)
-    except Exception as e:
-        raise HTTPException(502, f"下载二进制失败: {e}")
+    # GitHub 直连在国内经常超时，按顺序回退到公共镜像
+    mirrors = [asset_url,
+               "https://ghfast.top/" + asset_url,
+               "https://gh-proxy.com/" + asset_url,
+               "https://ghproxy.net/" + asset_url]
+    last_err = None
+    got = False
+    for url in mirrors:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "tomato-gateway"})
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                with open(tmp, 'wb') as f:
+                    while True:
+                        chunk = resp.read(65536)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+            if os.path.getsize(tmp) > 1024 * 1024:
+                os.chmod(tmp, 0o755)
+                got = True
+                break
+            raise RuntimeError("文件过小")
+        except Exception as e:
+            last_err = e
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+    if not got:
+        raise HTTPException(502, f"下载二进制失败（已尝试 GitHub 直连与 3 个镜像）: {last_err}")
     bak = TOMATO_BIN + ".bak"
     if os.path.isfile(TOMATO_BIN):
         shutil.copy2(TOMATO_BIN, bak)

@@ -7,6 +7,14 @@
 import os, signal, subprocess, time, threading, json, socket, shutil, re
 
 BIN = "/opt/tomato-multi/bin/tomato"
+
+
+def _bin_path():
+    """返回可用的实例二进制；主文件缺失时回退 .bak，都没有返回 None。"""
+    for p in (BIN, BIN + ".bak"):
+        if os.path.isfile(p) and os.access(p, os.X_OK):
+            return p
+    return None
 BASE_DATA = "/opt/tomato-multi/data/users"
 
 def _proc_line_matches(line, data_dir):
@@ -111,11 +119,15 @@ def start_instance(uid, port, data_dir):
         # 端口已有实例在监听(可能是遗漏的孤儿) -> 视为已运行
         if _port_open("127.0.0.1", port):
             return True
+        binp = _bin_path()
+        if not binp:
+            raise RuntimeError(
+                "实例程序缺失(" + BIN + ")，请在管理后台点击「更新 Web」后重试")
         os.makedirs(data_dir, exist_ok=True)
         env = dict(os.environ)
         env["TOMATO_WEB_ADDR"] = f"127.0.0.1:{port}"
         proc = subprocess.Popen(
-            [BIN, "--server", "--data-dir", data_dir],
+            [binp, "--server", "--data-dir", data_dir],
             env=env,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -308,10 +320,13 @@ def health_check(uid):
     return _port_open("127.0.0.1", u["port"])
 
 def render_nginx():
-    """生成 nginx 反代配置（用户子域名 -> 本地端口）。"""
+    """生成 nginx 反代配置（用户子域名 -> 本地端口）。
+
+    原子写入（tmp + replace），内容无变化时直接跳过 —— 避免每次启动空间
+    都重写整份配置并 reload（既慢，又会让 nginx 读到写了一半的文件）。
+    """
     import db
     if not DOMAIN:
-        # 防止在环境变量缺失时写出坏配置(如 server_name u1.;)
         return "DOMAIN empty, skip nginx render"
     users = db.list_users()
     lines = [
@@ -331,7 +346,6 @@ server {{
     ssl_certificate_key {CERTKEY};
     ssl_protocols TLSv1.2 TLSv1.3;
 
-    # 未登录/非本人 -> 弹回主站登录页; 实例未启动(proxy 502) -> 弹回主站提示启动
     error_page 401 403 = @need_login;
     error_page 502 = @need_start;
 
@@ -349,12 +363,10 @@ server {{
         sub_filter_once on;
     }}
 
-    # 公告接口透传到网关(用户子域也能取公告)
     location = /__announce__ {{
         proxy_pass http://127.0.0.1:18080/__announce__;
     }}
 
-    # 内部鉴权子请求 -> 网关校验 cookie 用户是否匹配该子域名
     location = /_auth {{
         internal;
         proxy_pass http://127.0.0.1:18080/api/auth_check;
@@ -377,14 +389,30 @@ server {{
     server_name {srv}.{DOMAIN};
     return 301 https://$host$request_uri;
 }}""")
+
+    text = "\n".join(lines)
+
+    def strip_ts(t):
+        return "\n".join(l for l in t.splitlines() if not l.startswith("# 自动生成"))
+
     try:
-        with open(NGINX_CONF, "w") as f:
-            f.write("\n".join(lines))
-        subprocess.run(["nginx", "-t"], capture_output=True)
-        subprocess.run(["nginx", "-s", "reload"])
-    except Exception as e:
-        return f"nginx reload failed: {e}"
+        old = open(NGINX_CONF, encoding="utf-8").read()
+    except Exception:
+        old = ""
+    if old and strip_ts(old) == strip_ts(text):
+        return "unchanged"
+
+    tmp = NGINX_CONF + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, NGINX_CONF)
+
+    r = subprocess.run(["nginx", "-t"], capture_output=True, text=True)
+    if r.returncode != 0:
+        return "nginx -t failed: " + (r.stderr or "")[-200:]
+    subprocess.run(["nginx", "-s", "reload"], capture_output=True)
     return "ok"
+
 
 def _dir_latest_mtime(path):
     """返回目录内最新文件的修改时间(判断是否活跃)。"""
