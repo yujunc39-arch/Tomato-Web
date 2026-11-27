@@ -10,7 +10,7 @@ BIN = "/opt/tomato-multi/bin/tomato"
 
 
 def _bin_path():
-    """返回可用的实例二进制；主文件缺失时回退 .bak，都没有返回 None。"""
+    """返回可用的实例二进制；主文件缺失时回退 .bak，都没有则返回 None。"""
     for p in (BIN, BIN + ".bak"):
         if os.path.isfile(p) and os.access(p, os.X_OK):
             return p
@@ -122,10 +122,21 @@ def start_instance(uid, port, data_dir):
         binp = _bin_path()
         if not binp:
             raise RuntimeError(
-                "实例程序缺失(" + BIN + ")，请在管理后台点击「更新 Web」后重试")
+                "实例程序缺失(/opt/tomato-multi/bin/tomato)，请在管理后台点击「更新 Web」后重试")
         os.makedirs(data_dir, exist_ok=True)
         env = dict(os.environ)
         env["TOMATO_WEB_ADDR"] = f"127.0.0.1:{port}"
+        # 番茄 v2.5.0+ 默认只放行 127.0.0.1/::1 的 Host，nginx 反代会带真实域名
+        # -> 必须把用户自己的子域名显式加进白名单，并把本机反代标为可信代理
+        try:
+            import db as _db
+            _u = _db.get_user_by_id(uid) or {}
+            _sub = (_u.get("subdomain") or f"u{uid}").strip()
+            if DOMAIN and _sub:
+                env["TOMATO_WEB_ALLOWED_HOSTS"] = f"{_sub}.{DOMAIN}"
+            env["TOMATO_WEB_TRUSTED_PROXIES"] = "127.0.0.1,::1"
+        except Exception as _e:
+            print("set TOMATO_WEB_ALLOWED_HOSTS failed:", _e)
         proc = subprocess.Popen(
             [binp, "--server", "--data-dir", data_dir],
             env=env,
@@ -322,8 +333,8 @@ def health_check(uid):
 def render_nginx():
     """生成 nginx 反代配置（用户子域名 -> 本地端口）。
 
-    原子写入（tmp + replace），内容无变化时直接跳过 —— 避免每次启动空间
-    都重写整份配置并 reload（既慢，又会让 nginx 读到写了一半的文件）。
+    改进：原子写入(tmp + replace)，且内容无变化时直接跳过，避免每次启动空间
+    都重写 1MB 配置并 reload（这是之前卡顿与 pread 报错的根源）。
     """
     import db
     if not DOMAIN:

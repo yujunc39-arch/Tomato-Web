@@ -783,7 +783,7 @@ body .island.isShow{opacity:1;transform:none}
 <section class="auth" id="auth">
   <h2 class="authT rv" id="authTitle">登录<small>进入你的个人空间。</small></h2>
   <div class="card lg rv d1" id="authCard">
-    <div class="tabs lg" role="tablist">
+    <div class="tabs" role="tablist">
       <button id="tabLogin" class="active" role="tab" onclick="showTab('login')">登录</button>
       <button id="tabReg" role="tab" onclick="showTab('reg')">注册</button>
       <span class="tabInd" aria-hidden="true"></span>
@@ -1342,6 +1342,17 @@ if(location.search.includes('need_start')){
   try{
     const d = await api('/api/site_info');
     _emailVerify = !!d.email_verify;
+    // 注册开关: 后台关闭时隐藏入口
+    if(d.register_open === false){
+      const tb=document.getElementById('tabReg'); if(tb) tb.style.display='none';
+      const tw=document.querySelector('#authCard .tabs'); if(tw) tw.style.display='none';
+      const rb=document.getElementById('regBtn');
+      if(rb){ rb.disabled=true; rb.style.opacity='0.45'; rb.style.cursor='not-allowed'; rb.textContent='注册暂未开放'; }
+      const hint=document.getElementById('quotaHint');
+      if(hint){ hint.style.color='#ff9aa6'; hint.innerHTML='注册暂未开放，请稍后再来'; }
+      const rf=document.getElementById('regForm');
+      if(rf && !rf.classList.contains('hidden') && typeof showTab==='function') showTab('login');
+    }
     if(_emailVerify) document.getElementById('emailBlock').classList.remove('hidden');
     // 邮箱域名白名单提示
     const doms = d.allowed_domains || [];

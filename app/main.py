@@ -62,6 +62,9 @@ SMTP_SSL  = (os.environ.get("SMTP_SSL")  or _ENV.get("SMTP_SSL")  or "1").strip(
 SMTP_TLS  = (os.environ.get("SMTP_TLS")  or _ENV.get("SMTP_TLS")  or "0").strip() == "1"
 EMAIL_VERIFY = bool(SMTP_HOST and SMTP_USER and SMTP_PASS)
 
+# 注册开关: .env 里 REGISTER_OPEN=0 即关闭注册(前端隐藏入口 + 后端拒绝)
+REGISTER_OPEN = (os.environ.get("REGISTER_OPEN") or _ENV.get("REGISTER_OPEN") or "1").strip().lower() not in ("0", "false", "no", "off")
+
 # 每日注册上限（同时保护发信额度，避免把 Resend 免费额度打爆）
 # 可用 .env 的 DAILY_REG_LIMIT 调整；<=0 表示不限制
 DAILY_REG_LIMIT = int((os.environ.get("DAILY_REG_LIMIT")
@@ -524,7 +527,8 @@ async def site_info():
             "sent_today": sends,
             "left_today": left,
             "resets_at": u.get("resets_at"),
-            "quota_exhausted": bool(EMAIL_VERIFY and quota_exhausted())}
+            "quota_exhausted": bool(EMAIL_VERIFY and quota_exhausted()),
+            "register_open": REGISTER_OPEN}
 
 @app.get("/api/human/status")
 async def human_status(request: Request):
@@ -568,6 +572,8 @@ def find_user_by_ident(ident: str):
 @app.post("/api/register/send_code")
 async def register_send_code(data: dict, request: Request):
     """发送注册邮箱验证码（仅当 SMTP 配置齐全时可用）。"""
+    if not REGISTER_OPEN:
+        raise HTTPException(403, "注册暂未开放，请稍后再来")
     if not human_ok(request):
         raise HTTPException(403, "请先完成真人校验")
     if not EMAIL_VERIFY:
@@ -617,6 +623,8 @@ async def register_send_code(data: dict, request: Request):
 
 @app.post("/api/register")
 async def register(data: dict, request: Request):
+    if not REGISTER_OPEN:
+        raise HTTPException(403, "注册暂未开放，请稍后再来")
     if not human_ok(request):
         raise HTTPException(403, "请先完成真人校验")
     if EMAIL_VERIFY and quota_exhausted():
@@ -833,7 +841,7 @@ async def me_start(request: Request):
     try:
         ok = instances.start_instance(user["id"], user["port"], user["data_dir"])
     except RuntimeError as e:
-        # 例如实例二进制缺失：给前端一个明确的提示，而不是 500
+        # 实例二进制缺失等可恢复问题：给前端一个明确提示，而不是 500
         raise HTTPException(503, str(e))
     except Exception as e:
         raise HTTPException(500, f"启动失败: {e}")
@@ -1507,13 +1515,12 @@ async def admin_tomato_update(request: Request):
     old_ver   = _get_current_tomato_version()
     import urllib.request
     tmp = "/tmp/tomato_new_bin"
-    # GitHub 直连在国内经常超时，按顺序回退到公共镜像
     mirrors = [asset_url,
                "https://ghfast.top/" + asset_url,
                "https://gh-proxy.com/" + asset_url,
                "https://ghproxy.net/" + asset_url]
     last_err = None
-    got = False
+    ok_dl = False
     for url in mirrors:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "tomato-gateway"})
@@ -1526,16 +1533,15 @@ async def admin_tomato_update(request: Request):
                         f.write(chunk)
             if os.path.getsize(tmp) > 1024 * 1024:
                 os.chmod(tmp, 0o755)
-                got = True
+                ok_dl = True
                 break
-            raise RuntimeError("文件过小")
         except Exception as e:
             last_err = e
             try:
                 os.remove(tmp)
             except OSError:
                 pass
-    if not got:
+    if not ok_dl:
         raise HTTPException(502, f"下载二进制失败（已尝试 GitHub 直连与 3 个镜像）: {last_err}")
     bak = TOMATO_BIN + ".bak"
     if os.path.isfile(TOMATO_BIN):
